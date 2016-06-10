@@ -1,0 +1,96 @@
+worker_processes 1;
+error_log stderr notice;
+daemon off;
+events {
+    worker_connections 1024;
+}
+
+env PORT;
+
+
+http {
+    map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+    resolver 8.8.8.8;
+    #Lua resty waf package
+    lua_package_path '/helloproj/lua-resty-waf/?.lua;;';
+    lua_package_cpath '/helloproj/lua-resty-waf/?.lua;;';
+
+    variables_hash_max_size 1024;
+    access_log off;
+    include /usr/local/openresty/nginx/conf/mime.types;
+    set_real_ip_from 127.0.0.1/8;
+    real_ip_header X-Real-IP;
+    charset utf-8;
+    init_by_lua '
+        require "resty.core"
+        -- require the base module
+        local lua_resty_waf = require "waf"
+
+         -- define options that will be inherited across all scopes
+        lua_resty_waf.default_option("debug", true)
+        lua_resty_waf.default_option("mode", "ACTIVE")
+
+        -- perform some preloading and optimization
+        lua_resty_waf.init()
+        listen = os.getenv("PORT")
+    ';
+    server {
+       # set_by_lua $listen 'return os.getenv("PORT")';
+      set $listen '80';
+      set_by_lua $listen 'return os.getenv("PORT")';
+      listen  $listen;
+       #listen $ENV{"PORT"} ; 
+       lua_code_cache on;
+          
+
+
+        location / {
+          set $forwarded_url '';
+          access_by_lua_file ./route-service.lua;
+
+
+          header_filter_by_lua '
+            local lua_resty_waf = require "waf"
+
+            -- note that options set in previous handlers (in the same scope)
+            -- do not need to be set again
+            local waf = lua_resty_waf:new()
+
+            waf:exec()
+        ';
+
+        body_filter_by_lua '
+          local lua_resty_waf = require "waf"
+          local waf = lua_resty_waf:new()
+          waf:exec()
+        ';
+
+
+        log_by_lua '
+          local lua_resty_waf = require "waf"
+          local waf = lua_resty_waf:new()
+          -- write out any event log entries to the
+          -- configured target, if applicable
+          waf:write_log_events()
+         ';
+
+            default_type text/html;
+        
+        proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $2;
+        proxy_redirect / /;
+
+        # Upgrade headers
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+
+
+        proxy_pass $forwarded_url;
+    }
+    }
+}
