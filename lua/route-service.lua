@@ -19,9 +19,6 @@ waf:set_option("debug", true)
 
 ngx.var.forwarded_url = cf_header_x_forwarded
 
-ngx.header["X-CF-Proxy-Signature"]  = cf_header_sign
-ngx.header["X-CF-Proxy-Metadata"]   = cf_header_metadata
-
 
 waf:exec()
 

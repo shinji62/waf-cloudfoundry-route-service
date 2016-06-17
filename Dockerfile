@@ -1,6 +1,6 @@
 FROM alpine:3.4
 
-ENV OPENRESTY_VERSION 1.9.7.4
+ENV OPENRESTY_VERSION 1.9.15.1
 ENV OPENRESTY_PREFIX /opt/openresty
 ENV NGINX_PREFIX /opt/openresty/nginx
 ENV VAR_PREFIX /var/nginx
@@ -63,6 +63,8 @@ WORKDIR $NGINX_PREFIX/
 
 ONBUILD RUN rm -rf conf/* html/*
 ADD nginx $NGINX_PREFIX/
-ADD lua-resty-waf $NGINX_PREFIX/
+ADD lua $NGINX_PREFIX/
 
 CMD ["nginx", "-g", "daemon off; error_log /dev/stderr info;"]
+
+#CMD ["/bin/sh"]
