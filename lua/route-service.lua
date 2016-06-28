@@ -10,12 +10,17 @@ end
 
 -- WAF firewall rule
 local lua_resty_waf = require "waf"
+local url_lua = require "url"
 local waf = lua_resty_waf:new()
+local collections = ngx.ctx.collections
+local parsed = url_lua.parse(cf_header_x_forwarded)
+
+-- Setting request URI 
+ngx.req.set_uri_args(parsed.query)
 
 -- default options can be overridden
 waf:set_option("debug", true)
 -- run the firewall
-
 
 ngx.var.forwarded_url = cf_header_x_forwarded
 

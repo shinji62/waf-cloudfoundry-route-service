@@ -42,6 +42,7 @@ RUN echo "==> Installing dependencies..." \
     --with-http_stub_status_module \
     --with-http_sub_module \
     --with-http_xslt_module \
+    --with-debug \
  && echo "==> Building OpenResty..." \
  && make -j${NPROC} \
  && echo "==> Installing OpenResty..." \
